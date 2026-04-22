@@ -28,15 +28,15 @@ class MMMModel(ABC):
     """
 
     @abstractmethod
-    def fit(self, X: np.ndarray, y: np.ndarray) -> MMMModel:  # noqa: N803
+    def fit(self, X: np.ndarray, y: np.ndarray) -> MMMModel:
         """Fit the model. Returns self for chaining."""
 
     @abstractmethod
-    def predict(self, X: np.ndarray) -> np.ndarray:  # noqa: N803
+    def predict(self, X: np.ndarray) -> np.ndarray:
         """Predict y on a (T', C) feature matrix. Returns shape (T',)."""
 
     @abstractmethod
-    def beta_at_T(self) -> np.ndarray:  # noqa: N802
+    def beta_at_T(self) -> np.ndarray:
         """Coefficient estimate for forward-looking budget allocation.
 
         Shape (C,) in channel order.  For Robyn/PyMC this is a single
