@@ -64,7 +64,7 @@ def _intuition_charts(
     model_betas = {
         "robyn": robyn.beta_at_T(),
         "pymc": pymc.beta_at_T(),
-        "dlm": dlm.smoothed_states[:, 1:],
+        "dlm": dlm.component_trajectory("beta"),
     }
     coef_fig = plot_coefficient_trajectories(true_beta, model_betas, channel_names)
     coef_fig.savefig(output_dir / "coef_trajectories.png", dpi=150)

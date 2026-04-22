@@ -44,14 +44,26 @@ DEFAULT_ROBYN_KWARGS: dict[str, Any] = dict(nevergrad_budget=40)
 
 
 def _default_dlm_kwargs(config: DGPConfig) -> dict[str, Any]:
-    """Diagonal Q with intercept near-fixed, β rows allowed to drift; R = σ²."""
-    n_channels = len(config.channels)
-    state_dim = n_channels + 1
-    innovation = np.full(state_dim, 5e-3)
-    innovation[0] = 1e-8  # intercept
+    """Structural DLM matching the DGP's α_t: local linear trend + annual Fourier.
+
+    The runner knows what the DGP looks like (linear baseline trend + annual
+    seasonality), so it hands the DLM a matching structural spec.  This
+    routes α_t's variance into dedicated level/slope/seasonal states
+    instead of letting it bleed into the β block and corrupt the
+    coefficient-recovery story.  `seasonal_innovation_var=0` makes the
+    seasonal shape deterministic (fixed amplitude/phase, which is what the
+    DGP does too).
+    """
     return dict(
-        innovation_var=innovation,
+        local_linear_trend=True,
+        seasonal_period=config.seasonality_period,
+        seasonal_harmonics=1,
+        level_innovation_var=1e-6,
+        slope_innovation_var=1e-8,
+        seasonal_innovation_var=0.0,
+        beta_innovation_var=5e-3,
         observation_var=config.noise_std**2,
+        initial_var=10.0,
     )
 
 
