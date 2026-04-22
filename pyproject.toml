@@ -43,6 +43,7 @@ select = ["E", "F", "I", "N", "UP", "B", "SIM"]
 "models/pymc_model.py" = ["N802", "N803", "N806"]
 "models/dlm_model.py" = ["N802", "N803", "N806"]
 "tests/test_kalman.py" = ["N802", "N803", "N806"]
+"tests/test_structural_dlm.py" = ["N802", "N803", "N806"]
 # `beta_T`, `true_beta_T`, `beta_T_hat` — `T` marks the terminal time index.
 "simulation/results.py" = ["N815"]
 "simulation/runner.py" = ["N806"]
