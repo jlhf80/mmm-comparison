@@ -49,6 +49,8 @@ select = ["E", "F", "I", "N", "UP", "B", "SIM"]
 "tests/test_runner.py" = ["N802"]
 "tests/test_robyn.py" = ["N802", "N806"]
 "tests/test_pymc.py" = ["N802", "N806"]
+"main.py" = ["N806"]
+"tests/test_visualization.py" = ["N806"]
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]
