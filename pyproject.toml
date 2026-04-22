@@ -41,6 +41,8 @@ select = ["E", "F", "I", "N", "UP", "B", "SIM"]
 "models/base.py" = ["N802", "N803"]
 "models/robyn_model.py" = ["N802", "N803", "N806"]
 "models/pymc_model.py" = ["N802", "N803", "N806"]
+"models/dlm_model.py" = ["N802", "N803", "N806"]
+"tests/test_kalman.py" = ["N802", "N803", "N806"]
 "tests/test_robyn.py" = ["N802", "N806"]
 "tests/test_pymc.py" = ["N802", "N806"]
 
