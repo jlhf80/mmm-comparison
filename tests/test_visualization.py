@@ -17,12 +17,14 @@ import pytest
 from matplotlib.figure import Figure
 
 from dgp.config import ChannelConfig, DGPConfig
+from models.dlm_model import DLMModel
 from simulation.results import ModelResult, SimulationResult
 from visualization.allocation_plot import (
     plot_allocation_error_distribution,
     plot_allocation_shares,
 )
 from visualization.coef_plot import plot_coefficient_trajectories
+from visualization.dlm_components_plot import plot_dlm_components
 from visualization.residual_plot import plot_fit_and_residuals
 
 
@@ -177,6 +179,56 @@ def test_plot_coefficient_trajectories_rejects_band_for_unknown_model():
             true_beta, model_betas, ["a", "b"],
             model_bands={"ghost": (np.zeros((10, 2)), np.zeros((10, 2)))},
         )
+
+
+# --- dlm_components_plot ---------------------------------------------------
+
+
+def _structural_dlm(n_channels: int = 3, n_obs: int = 40, seed: int = 0) -> DLMModel:
+    """Fit a small structural DLM for visualization-test fixtures."""
+    rng = np.random.default_rng(seed)
+    X = rng.normal(size=(n_obs, n_channels))
+    y = rng.normal(size=n_obs)
+    return DLMModel(
+        local_linear_trend=True,
+        seasonal_period=52.0,
+        seasonal_harmonics=1,
+        level_innovation_var=1e-6,
+        slope_innovation_var=1e-8,
+        seasonal_innovation_var=0.0,
+        beta_innovation_var=5e-3,
+        observation_var=0.25,
+        initial_var=10.0,
+    ).fit(X, y)
+
+
+def test_plot_dlm_components_returns_figure_with_six_axes():
+    """Structural DLM fit produces exactly 6 component panels."""
+    dlm = _structural_dlm(n_channels=3)
+    fig = plot_dlm_components(dlm, ["a", "b", "c"])
+    try:
+        assert isinstance(fig, Figure)
+        assert len(fig.axes) == 6
+    finally:
+        import matplotlib.pyplot as plt
+        plt.close(fig)
+
+
+def test_plot_dlm_components_rejects_nonstructural_dlm():
+    """Plain DLM lacks level/slope/seasonal — must raise clearly."""
+    rng = np.random.default_rng(1)
+    X = rng.normal(size=(30, 2))
+    y = rng.normal(size=30)
+    dlm = DLMModel().fit(X, y)
+    with pytest.raises(ValueError, match="structural"):
+        plot_dlm_components(dlm, ["a", "b"])
+
+
+def test_plot_dlm_components_rejects_wrong_length_names():
+    """Number of channel names must match the β block width."""
+    dlm = _structural_dlm(n_channels=3)
+    with pytest.raises(ValueError, match="channel names"):
+        plot_dlm_components(dlm, ["a", "b"])
 
 
 # --- residual_plot --------------------------------------------------------
