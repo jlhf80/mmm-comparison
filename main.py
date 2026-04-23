@@ -7,6 +7,7 @@ Writes three PNGs and a small summary.json into the output directory:
 
     coef_trajectories.png       — estimated vs true β_{c,t}, seed 0
     residual_structure.png      — fit vs actual + residuals, seed 0
+    dlm_components.png          — smoothed trajectory per structural block (appendix), seed 0
     allocation_shares.png       — mean budget share per channel, MC sweep
     allocation_error.png        — per-seed L1 share error, MC sweep
     summary.json                — per-model allocation error summary stats
@@ -36,6 +37,7 @@ from visualization.allocation_plot import (
     plot_allocation_shares,
 )
 from visualization.coef_plot import plot_coefficient_trajectories
+from visualization.dlm_components_plot import plot_dlm_components
 from visualization.residual_plot import plot_fit_and_residuals
 
 
@@ -88,6 +90,9 @@ def _intuition_charts(
     }
     resid_fig = plot_fit_and_residuals(y, predictions)
     resid_fig.savefig(output_dir / "residual_structure.png", dpi=150)
+
+    components_fig = plot_dlm_components(dlm, channel_names)
+    components_fig.savefig(output_dir / "dlm_components.png", dpi=150)
 
 
 def _monte_carlo_charts(
