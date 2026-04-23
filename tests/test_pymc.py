@@ -77,6 +77,22 @@ def test_pymc_loglik_matrix_before_fit_raises() -> None:
         model.loglik_matrix()
 
 
+def test_pymc_beta_posterior_samples_shape(fitted_pymc) -> None:
+    """beta_posterior_samples returns (C, S) with S = draws × chains."""
+    model, _, _, names = fitted_pymc
+    draws = model.beta_posterior_samples()
+    expected_samples = _FAST_KWARGS["draws"] * _FAST_KWARGS["chains"]
+    assert draws.shape == (len(names), expected_samples)
+    # Mean across samples matches beta_at_T().
+    np.testing.assert_allclose(draws.mean(axis=1), model.beta_at_T())
+
+
+def test_pymc_beta_posterior_samples_before_fit_raises() -> None:
+    model = PyMCModel()
+    with pytest.raises(RuntimeError, match="before fit"):
+        model.beta_posterior_samples()
+
+
 def test_pymc_rejects_shape_mismatch() -> None:
     model = PyMCModel()
     with pytest.raises(ValueError, match="expected X"):

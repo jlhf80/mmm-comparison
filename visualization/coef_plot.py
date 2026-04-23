@@ -36,6 +36,7 @@ def plot_coefficient_trajectories(
     model_betas: dict[str, np.ndarray],
     channel_names: Sequence[str],
     *,
+    model_bands: dict[str, tuple[np.ndarray, np.ndarray]] | None = None,
     axes: Sequence[Axes] | None = None,
     figsize: tuple[float, float] = (12.0, 3.5),
 ) -> Figure:
@@ -49,6 +50,11 @@ def plot_coefficient_trajectories(
         Mapping from model name to either a (T, C) trajectory (e.g. DLM) or
         a (C,) time-invariant estimate (Robyn, PyMC).  1-D estimates are
         drawn as horizontal lines so the viewer can read off the bias.
+    model_bands:
+        Optional mapping from model name to `(lower, upper)` arrays of the
+        same (T, C) / (C,) shape as the corresponding `model_betas` entry.
+        When provided, a shaded band is drawn around that model's line in
+        the same color.  Models absent from this dict render bandless.
     channel_names:
         Labels for the C subplots, in column order.
     axes:
@@ -79,11 +85,34 @@ def plot_coefficient_trajectories(
         name: _broadcast_to_trajectory(beta, n_weeks)
         for name, beta in model_betas.items()
     }
+    band_trajectories: dict[str, tuple[np.ndarray, np.ndarray]] = {}
+    if model_bands:
+        for name, (lo, hi) in model_bands.items():
+            if name not in model_trajectories:
+                raise ValueError(f"band supplied for unknown model {name!r}")
+            lo_arr = _broadcast_to_trajectory(lo, n_weeks)
+            hi_arr = _broadcast_to_trajectory(hi, n_weeks)
+            if lo_arr.shape != model_trajectories[name].shape:
+                raise ValueError(
+                    f"band for {name!r} has shape {lo_arr.shape}; "
+                    f"expected {model_trajectories[name].shape}"
+                )
+            band_trajectories[name] = (lo_arr, hi_arr)
 
     for c, (ax, name) in enumerate(zip(axes, channel_names, strict=True)):
         ax.plot(t, true_beta[:, c], color="black", lw=2.0, label="true β")
         for model_name, traj in model_trajectories.items():
-            ax.plot(t, traj[:, c], lw=1.4, alpha=0.9, label=model_name)
+            line = ax.plot(t, traj[:, c], lw=1.4, alpha=0.9, label=model_name)[0]
+            if model_name in band_trajectories:
+                lo_arr, hi_arr = band_trajectories[model_name]
+                ax.fill_between(
+                    t,
+                    lo_arr[:, c],
+                    hi_arr[:, c],
+                    color=line.get_color(),
+                    alpha=0.15,
+                    linewidth=0,
+                )
         ax.set_title(name)
         ax.set_xlabel("week")
         if c == 0:

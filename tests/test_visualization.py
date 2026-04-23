@@ -111,6 +111,74 @@ def test_plot_coefficient_trajectories_rejects_mismatched_trajectory():
         )
 
 
+def test_plot_coefficient_trajectories_accepts_bands():
+    """Bands of both (T, C) and (C,) shape should render without error."""
+    n_weeks, n_channels = 30, 3
+    rng = np.random.default_rng(0)
+    true_beta = rng.normal(size=(n_weeks, n_channels))
+    dlm_mean = rng.normal(size=(n_weeks, n_channels))
+    dlm_std = np.abs(rng.normal(size=(n_weeks, n_channels)))
+    pymc_mean = np.array([1.0, 2.0, 3.0])
+    model_betas = {"dlm": dlm_mean, "pymc": pymc_mean}
+    model_bands = {
+        "dlm": (dlm_mean - 1.96 * dlm_std, dlm_mean + 1.96 * dlm_std),
+        "pymc": (pymc_mean - 0.5, pymc_mean + 0.5),
+    }
+    fig = plot_coefficient_trajectories(
+        true_beta, model_betas, ["a", "b", "c"], model_bands=model_bands
+    )
+    try:
+        assert isinstance(fig, Figure)
+        assert len(fig.axes) == n_channels
+    finally:
+        import matplotlib.pyplot as plt
+        plt.close(fig)
+
+
+def test_plot_coefficient_trajectories_partial_bands():
+    """A model without a band entry should still render as a bandless line."""
+    n_weeks, n_channels = 20, 2
+    rng = np.random.default_rng(1)
+    true_beta = rng.normal(size=(n_weeks, n_channels))
+    dlm_mean = rng.normal(size=(n_weeks, n_channels))
+    dlm_std = np.full_like(dlm_mean, 0.1)
+    model_betas = {"dlm": dlm_mean, "robyn": np.array([1.0, 2.0])}
+    model_bands = {
+        "dlm": (dlm_mean - 1.96 * dlm_std, dlm_mean + 1.96 * dlm_std)
+    }
+    fig = plot_coefficient_trajectories(
+        true_beta, model_betas, ["a", "b"], model_bands=model_bands
+    )
+    try:
+        assert len(fig.axes) == n_channels
+    finally:
+        import matplotlib.pyplot as plt
+        plt.close(fig)
+
+
+def test_plot_coefficient_trajectories_rejects_mismatched_band_shape():
+    """Band shape must match its model's estimate shape."""
+    true_beta = np.zeros((10, 2))
+    model_betas = {"dlm": np.zeros((10, 2))}
+    # Lower bound is (12, 2) — doesn't match (10, 2) estimate.
+    bad_band = (np.zeros((12, 2)), np.zeros((12, 2)))
+    with pytest.raises(ValueError):
+        plot_coefficient_trajectories(
+            true_beta, model_betas, ["a", "b"],
+            model_bands={"dlm": bad_band},
+        )
+
+
+def test_plot_coefficient_trajectories_rejects_band_for_unknown_model():
+    true_beta = np.zeros((10, 2))
+    model_betas = {"dlm": np.zeros((10, 2))}
+    with pytest.raises(ValueError):
+        plot_coefficient_trajectories(
+            true_beta, model_betas, ["a", "b"],
+            model_bands={"ghost": (np.zeros((10, 2)), np.zeros((10, 2)))},
+        )
+
+
 # --- residual_plot --------------------------------------------------------
 
 
