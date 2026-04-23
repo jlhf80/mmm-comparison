@@ -115,6 +115,12 @@ class PyMCModel(MMMModel):
         # xarray stacks the new `sample` dim last; transpose to (sample, obs).
         return ll.transpose("sample", ...).values
 
+    def beta_posterior_samples(self) -> np.ndarray:
+        """(C, S) posterior draws of β — stacked across chains and draws."""
+        if self._beta_posterior is None:
+            raise RuntimeError("PyMCModel.beta_posterior_samples called before fit")
+        return self._beta_posterior.copy()
+
     @property
     def idata(self):
         if self._idata is None:

@@ -485,6 +485,23 @@ class DLMModel(MMMModel):
             raise KeyError(f"component {name!r} not in state {list(self._slices)}")
         return self._x_smooth[:, self._slices[name]].copy()
 
+    def component_trajectory_std(self, name: str) -> np.ndarray:
+        """Marginal posterior std of the named component block at each t.
+
+        Returns (T, component_dim).  Reads the diagonal of the smoothed
+        covariance inside the slice, so off-diagonal cross-state correlations
+        are ignored — this is the per-component marginal std, which is what
+        callers plotting per-channel credible bands need.
+        """
+        if self._P_smooth is None or self._slices is None:
+            raise RuntimeError("DLMModel.component_trajectory_std called before fit")
+        if name not in self._slices:
+            raise KeyError(f"component {name!r} not in state {list(self._slices)}")
+        slc = self._slices[name]
+        block = self._P_smooth[:, slc, slc]
+        diag = np.einsum("tii->ti", block)
+        return np.sqrt(np.maximum(diag, 0.0))
+
     # --- private helpers ----------------------------------------------
 
     def _n_channels(self) -> int:

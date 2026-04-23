@@ -61,12 +61,24 @@ def _intuition_charts(
     dlm = DLMModel(**_default_dlm_kwargs(run_config)).fit(X, y)
 
     true_beta = data.beta_matrix()
+    dlm_beta = dlm.component_trajectory("beta")
+    dlm_beta_std = dlm.component_trajectory_std("beta")
+    pymc_draws = pymc.beta_posterior_samples()  # (C, S)
     model_betas = {
         "robyn": robyn.beta_at_T(),
         "pymc": pymc.beta_at_T(),
-        "dlm": dlm.component_trajectory("beta"),
+        "dlm": dlm_beta,
     }
-    coef_fig = plot_coefficient_trajectories(true_beta, model_betas, channel_names)
+    model_bands = {
+        "dlm": (dlm_beta - 1.96 * dlm_beta_std, dlm_beta + 1.96 * dlm_beta_std),
+        "pymc": (
+            np.quantile(pymc_draws, 0.05, axis=1),
+            np.quantile(pymc_draws, 0.95, axis=1),
+        ),
+    }
+    coef_fig = plot_coefficient_trajectories(
+        true_beta, model_betas, channel_names, model_bands=model_bands
+    )
     coef_fig.savefig(output_dir / "coef_trajectories.png", dpi=150)
 
     predictions = {

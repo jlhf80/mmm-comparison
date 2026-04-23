@@ -286,6 +286,27 @@ def test_dlm_accepts_scalar_or_vector_innovation_var() -> None:
     DLMModel(innovation_var=np.array([1e-3, 1e-2, 1e-4])).fit(X, y)
 
 
+def test_component_trajectory_std_matches_diagonal() -> None:
+    """std for a component should equal sqrt of the matching covariance diagonal."""
+    rng = np.random.default_rng(4)
+    X = rng.normal(size=(40, 3))
+    y = rng.normal(size=40)
+    model = DLMModel().fit(X, y)
+    std = model.component_trajectory_std("beta")
+    beta_slice = model.state_slices["beta"]
+    P = model.smoothed_covariances
+    # Extract diagonal of the β block: P[t, beta_slice.start+c, beta_slice.start+c]
+    idx = np.arange(beta_slice.start, beta_slice.stop)
+    expected_var = P[:, idx, idx]
+    np.testing.assert_allclose(std**2, expected_var, atol=1e-10)
+    assert std.shape == (40, 3)
+
+
+def test_component_trajectory_std_before_fit_raises() -> None:
+    with pytest.raises(RuntimeError, match="before fit"):
+        DLMModel().component_trajectory_std("beta")
+
+
 # =========================================================================
 # Punchline: DLM recovers true β_T on data from the DGP
 # =========================================================================
