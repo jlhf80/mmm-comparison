@@ -386,3 +386,52 @@ def test_dlm_beta_T_is_closer_to_truth_than_beta_0_on_drifting_data() -> None:
     err_to_T = float(np.linalg.norm(beta_hat_T - true_beta_T))
     err_to_0 = float(np.linalg.norm(beta_hat_T - true_beta_0))
     assert err_to_T < err_to_0
+
+
+# =========================================================================
+# Default-DGP recovery: locks in that the shipped DGP is identifiable
+# =========================================================================
+
+
+def test_structural_dlm_recovers_beta_on_default_dgp_across_seeds() -> None:
+    """Averaged over seeds, the structural DLM's β̂_T is closer to β_T than β_0
+    on the *default* DGP (three channels, baseline trend + seasonality).
+
+    Earlier defaults put features into the saturated region of the Hill
+    curve (CoV ≈ 3%) and no filter could recover β.  The retuned defaults
+    land features in the sensitive region (CoV ≳ 10%), which is what makes
+    the DLM's coefficient-recovery story measurable on the chart the
+    LinkedIn narrative ships.  This test guards against future tuning that
+    would drift back into the unidentifiable regime.
+    """
+    errs_T: list[float] = []
+    errs_0: list[float] = []
+    for seed in range(10):
+        cfg = DGPConfig(seed=seed)
+        data = generate_dataset(cfg)
+        X, y = data.feature_matrix(), data.y
+        true_T = np.array([data.beta[c][-1] for c in data.channel_names])
+        true_0 = np.array([data.beta[c][0] for c in data.channel_names])
+
+        model = DLMModel(
+            local_linear_trend=True,
+            seasonal_period=cfg.seasonality_period,
+            seasonal_harmonics=1,
+            level_innovation_var=1e-6,
+            slope_innovation_var=1e-8,
+            seasonal_innovation_var=0.0,
+            beta_innovation_var=5e-3,
+            observation_var=cfg.noise_std**2,
+            initial_var=10.0,
+        ).fit(X, y)
+        beta_hat_T = model.beta_at_T()
+        errs_T.append(float(np.linalg.norm(beta_hat_T - true_T)))
+        errs_0.append(float(np.linalg.norm(beta_hat_T - true_0)))
+
+    mean_err_T = float(np.mean(errs_T))
+    mean_err_0 = float(np.mean(errs_0))
+    # Generous margin: 0.80 still rules out the "fit β_0" failure mode.
+    assert mean_err_T < 0.80 * mean_err_0, (
+        f"DLM no longer tracks time-varying β on default DGP: "
+        f"mean err-to-T={mean_err_T:.2f} vs err-to-0={mean_err_0:.2f}"
+    )
