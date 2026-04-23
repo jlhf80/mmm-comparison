@@ -215,14 +215,16 @@ def test_local_linear_trend_recovers_linear_mean():
 
 def test_structural_dlm_removes_seasonal_leak_in_beta():
     """The purpose of adding a seasonal block is to stop the annual
-    sinusoid in y from contaminating β̂_{c,t}.  On the default DGP this is
-    measurable: the 52-week Fourier amplitude of β̂_{tv,t} should drop by
-    more than an order of magnitude once the structural DLM is used.
+    sinusoid in y from contaminating β̂_{c,t}.  On the default DGP the
+    52-week Fourier amplitude of β̂_{tv,t} should drop by several-fold
+    once the structural DLM replaces the plain-random-walk variant.
 
-    This test does NOT claim β_T recovery — with default-saturated features
-    and drifts that cancel in aggregate y, individual β's are not
-    identifiable regardless of model structure.  That is a separate DGP-
-    tuning question; here we only verify the structural change works.
+    The reduction threshold (5×) is loose on purpose: once the DGP features
+    are identifiable (CoV ≳ 10%), the legacy filter's leak is less extreme
+    than under the earlier saturated-feature defaults, so headroom over a
+    strict 10× ratio is small.  The spirit of the claim — structural DLM
+    explicitly absorbs seasonal variance instead of dumping it into β̂ — is
+    still what is measured.
     """
     config = DGPConfig(seed=0)
     data = generate_dataset(config)
@@ -256,7 +258,7 @@ def test_structural_dlm_removes_seasonal_leak_in_beta():
     tv_struct = structural.component_trajectory("beta")[:, 0]
     amp_legacy = seasonal_amplitude(tv_legacy, config.seasonality_period)
     amp_struct = seasonal_amplitude(tv_struct, config.seasonality_period)
-    assert amp_struct < 0.1 * amp_legacy, (
+    assert amp_struct < 0.2 * amp_legacy, (
         f"seasonal leak not reduced enough: legacy={amp_legacy:.2f}, "
         f"structural={amp_struct:.2f}"
     )

@@ -73,7 +73,7 @@ class DGPConfig:
     seasonality_period: float = 52.0  # weeks
 
     # Observation noise.
-    noise_std: float = 0.5
+    noise_std: float = 0.35
 
     # RNG seed.  None ⇒ non-reproducible.
     seed: int | None = 42
@@ -88,43 +88,51 @@ class DGPConfig:
 def default_channels() -> tuple[ChannelConfig, ...]:
     """Three channels encoding the narrative: TV declining, Digital rising, Search stable.
 
-    Magnitudes chosen so that each channel contributes a similar order of
-    revenue at t=0, with divergent trajectories over 156 weeks.
+    Spend / Hill parameters are tuned so each channel's adstocked-and-saturated
+    feature lands in the *sensitive* region of the Hill curve (mean ≈ 0.5–0.7
+    on the normalized scale, CoV ≳ 10%).  That keeps β_{c,t} identifiable
+    from y over 156 weeks — earlier defaults used saturated features
+    (mean ≈ 0.85, CoV ≈ 3%) and β_tv was in a near-nullspace direction.
+
+    Adstock decays differ by channel (TV 0.50, Digital 0.25, Search 0.10) to
+    preserve the editorial flavor "TV has the longest memory, Search almost
+    none" while keeping feature dynamics distinct enough that β_c is
+    individually recoverable.
     """
     tv = ChannelConfig(
         name="tv",
         beta_0=4.0,
         beta_drift=-0.015,          # ~−2.3 over 156 weeks
-        beta_innovation_std=0.08,
-        adstock_decay=0.70,
-        hill_alpha=2.0,
+        beta_innovation_std=0.020,
+        adstock_decay=0.50,
+        hill_alpha=1.5,
         hill_gamma=0.5,
-        hill_scale=300.0,
-        spend_mean=200.0,
-        spend_log_sigma=0.35,
+        hill_scale=45.0,
+        spend_mean=30.0,
+        spend_log_sigma=0.55,
     )
     digital = ChannelConfig(
         name="digital",
         beta_0=1.5,
         beta_drift=0.020,           # ~+3.1 over 156 weeks
-        beta_innovation_std=0.06,
-        adstock_decay=0.35,
-        hill_alpha=1.6,
-        hill_gamma=0.45,
-        hill_scale=150.0,
-        spend_mean=120.0,
-        spend_log_sigma=0.30,
+        beta_innovation_std=0.015,
+        adstock_decay=0.25,
+        hill_alpha=1.5,
+        hill_gamma=0.5,
+        hill_scale=45.0,
+        spend_mean=30.0,
+        spend_log_sigma=0.55,
     )
     search = ChannelConfig(
         name="search",
         beta_0=3.0,
         beta_drift=0.0,
-        beta_innovation_std=0.04,
-        adstock_decay=0.15,
-        hill_alpha=2.5,
-        hill_gamma=0.6,
-        hill_scale=80.0,
-        spend_mean=60.0,
-        spend_log_sigma=0.25,
+        beta_innovation_std=0.010,
+        adstock_decay=0.10,
+        hill_alpha=1.5,
+        hill_gamma=0.5,
+        hill_scale=45.0,
+        spend_mean=30.0,
+        spend_log_sigma=0.55,
     )
     return (tv, digital, search)
